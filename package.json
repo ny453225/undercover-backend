@@ -1,0 +1,16 @@
+{
+  "name": "undercover-backend",
+  "version": "1.0.0",
+  "description": "Serveur sécurisé pour le jeu Undercover",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "cors": "^2.8.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

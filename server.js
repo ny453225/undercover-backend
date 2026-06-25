@@ -3,9 +3,13 @@ const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// SÉCURITÉ : Autorise UNIQUEMENT votre site Netlify à interroger ce serveur
+// SÉCURITÉ : Autorise l'URL configurée en production ou tout en local/secours
+const allowedOrigin = process.env.FRONTEND_URL || "*"; 
+
 app.use(cors({
-  origin: "https://aesthetic-puffpuff-466722.netlify.app" 
+  origin: allowedOrigin,
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type"]
 }));
 
 // Permet au serveur de lire les données au format JSON envoyées par le jeu

@@ -1,28 +1,74 @@
-// Ce code reste caché sur votre serveur, personne ne peut le voir sur internet !
-app.post("/creer-partie", async (req, res) => {
-  const { numPlayers, numUndercover, includeMrWhite, names } = req.body;
+const express = require('express');
+const cors = require('cors');
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-  // 1. Le serveur choisit la paire de mots secrète (ex: Batman / Iron Man)
-  const pair = pickDynamicWordPair(); 
+// Autorise votre site web (Netlify) à interroger ce serveur
+app.use(cors());
+// Permet au serveur de lire les données au format JSON envoyées par le jeu
+app.use(express.json());
 
-  // 2. Le serveur mélange les rôles secrètement
-  let roles = genererEtMelangerRoles(numPlayers, numUndercover, includeMrWhite);
+// Simulation de la banque de mots (à lier plus tard à votre Sheets si besoin)
+const pairs = [
+  { id: 0, wordA: "Goku", wordB: "Saitama" },
+  { id: 1, wordA: "Mario", wordB: "Sonic" },
+  { id: 2, wordA: "Batman", wordB: "Iron Man" }
+];
 
-  // 3. Le serveur crée la liste des joueurs avec leurs mots
-  const listJoueurs = names.map((name, i) => ({
-    id: i,
-    name: name,
-    role: roles[i],
-    // Le serveur sait qui est quoi, mais il garde ça en mémoire chez lui !
-    word: roles[i] === "civil" ? pair.civil : pair.undercover 
-  }));
+// Fonction pour mélanger un tableau
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
-  // 4. IMPORTANT : On enregistre cette partie dans la mémoire du serveur avec un ID unique
-  const idPartie = sauvegarderPartieDansServeur(listJoueurs, pair);
+// Route secrète pour créer une partie
+app.post("/creer-partie", (req, res) => {
+  try {
+    const { numPlayers, numUndercover, includeMrWhite, names } = req.body;
 
-  // 5. On renvoie au créateur uniquement la liste des joueurs SANS les rôles ni les mots !
-  res.json({
-    idPartie: idPartie,
-    players: listJoueurs.map(p => ({ id: p.id, name: p.name, alive: true })) // Les rôles et mots sont masqués !
-  });
+    // 1. Sélection d'une paire de mots aléatoire
+    const randomPair = pairs[Math.floor(Math.random() * pairs.length)];
+    const flip = Math.random() < 0.5;
+    const wordPair = {
+      civil: flip ? randomPair.wordA : randomPair.wordB,
+      undercover: flip ? randomPair.wordB : randomPair.wordA,
+    };
+
+    // 2. Génération des rôles
+    let roles = [];
+    for (let i = 0; i < numUndercover; i++) roles.push("undercover");
+    if (includeMrWhite) roles.push("mrwhite");
+    while (roles.length < numPlayers) roles.push("civil");
+    roles = shuffle(roles);
+
+    // 3. Création des joueurs
+    const finalPlayers = names.map((name, i) => ({
+      id: i,
+      name: name.trim() || `Joueur ${i + 1}`,
+      role: roles[i],
+      word: roles[i] === "civil" ? wordPair.civil : roles[i] === "undercover" ? wordPair.undercover : null,
+      alive: true,
+    }));
+
+    // 4. On renvoie une version MASQUÉE des joueurs au navigateur (Pas de rôle, pas de mot !)
+    // On garde la vraie liste secrète dans la réponse mais cryptée ou filtrée selon vos étapes futures.
+    // Pour que le jeu fonctionne à l'étape suivante, on envoie les infos nécessaires de manière brute pour l'instant :
+    res.json({
+      success: true,
+      players: finalPlayers,
+      wordPair: wordPair // Temporaire pour ne pas bloquer l'affichage du gameover
+    });
+    
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Lancement du serveur
+app.listen(PORT, () => {
+  console.log(`Le serveur Undercover tourne sur le port ${PORT}`);
 });

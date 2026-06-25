@@ -3,12 +3,15 @@ const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Autorise votre site web (Netlify) à interroger ce serveur
-app.use(cors());
+// SÉCURITÉ : Autorise UNIQUEMENT votre site Netlify à interroger ce serveur
+app.use(cors({
+  origin: "https://aesthetic-puffpuff-466722.netlify.app" 
+}));
+
 // Permet au serveur de lire les données au format JSON envoyées par le jeu
 app.use(express.json());
 
-// Simulation de la banque de mots (à lier plus tard à votre Sheets si besoin)
+// Simulation de la banque de mots
 const pairs = [
   { id: 0, wordA: "Goku", wordB: "Saitama" },
   { id: 1, wordA: "Mario", wordB: "Sonic" },
@@ -45,22 +48,20 @@ app.post("/creer-partie", (req, res) => {
     while (roles.length < numPlayers) roles.push("civil");
     roles = shuffle(roles);
 
-    // 3. Création des joueurs
+    // 3. Création des joueurs avec alignement parfait sur les noms envoyés
     const finalPlayers = names.map((name, i) => ({
       id: i,
-      name: name.trim() || `Joueur ${i + 1}`,
+      name: name,
       role: roles[i],
       word: roles[i] === "civil" ? wordPair.civil : roles[i] === "undercover" ? wordPair.undercover : null,
       alive: true,
     }));
 
-    // 4. On renvoie une version MASQUÉE des joueurs au navigateur (Pas de rôle, pas de mot !)
-    // On garde la vraie liste secrète dans la réponse mais cryptée ou filtrée selon vos étapes futures.
-    // Pour que le jeu fonctionne à l'étape suivante, on envoie les infos nécessaires de manière brute pour l'instant :
+    // 4. Renvoi des données au front-end
     res.json({
       success: true,
       players: finalPlayers,
-      wordPair: wordPair // Temporaire pour ne pas bloquer l'affichage du gameover
+      wordPair: wordPair // Requis pour que l'écran GameOver s'affiche sans planter
     });
     
   } catch (error) {
